@@ -32,7 +32,11 @@ wrangler deploy
 ```
 
 ### Required Environment Variables
-- `JWT_SECRET` - Secret for signing JWT tokens (set via `wrangler secret put JWT_SECRET`)
+- `JWT_SECRET` - Secret for signing JWT tokens (already set to "Temiloluwa")
+
+### D1 Database Configuration
+- **Database Name:** universal-api-db-v2
+- **Database ID:** 4310813f-2653-4176-9699-a8557c722fd6
 
 ## API Endpoints
 

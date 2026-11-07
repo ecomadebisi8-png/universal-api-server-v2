@@ -8,8 +8,8 @@ ENVIRONMENT = "development"
 API_VERSION = "v2"
 JWT_SECRET = "Temiloluwa"
 
-# Using same D1 database as v1 for initial deployment
+# Dedicated D1 database for V2
 [[d1_databases]]
 binding = "DB"
-database_name = "universal-api-db"
-database_id = "7485bcbd-91cc-4c5e-98a0-282e84b0c153"
+database_name = "universal-api-db-v2"
+database_id = "4310813f-2653-4176-9699-a8557c722fd6"

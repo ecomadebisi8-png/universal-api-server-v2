@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>API Client - Universal API Server</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{--bg:#0f172a;--card:#1e293b;--border:#334155;--accent:#38bdf8;--accent-hover:#7dd3fc;--success:#22c55e;--success-bg:#166534;--danger:#ef4444;--danger-bg:#991b1b;--text:#f1f5f9;--muted:#94a3b8;--radius:12px;}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);height:100vh;overflow:hidden;}
+#authPage{display:flex;align-items:center;justify-content:center;height:100vh;background:linear-gradient(135deg,#0f172a 0%,#1e293b 100%);padding:20px;}
+.authCard{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:40px 32px;width:100%;max-width:440px;}
+.authCard h1{color:var(--accent);font-size:1.5rem;font-weight:700;margin-bottom:4px;}
+.authCard .sub{color:var(--muted);font-size:0.875rem;margin-bottom:24px;}
+.modeToggle{display:flex;gap:2px;margin-bottom:24px;background:#0f172a;border-radius:var(--radius);padding:4px;border:1px solid var(--border);}
+.modeBtn{flex:1;background:transparent;border:none;color:var(--muted);padding:10px 16px;font-size:0.875rem;font-weight:600;cursor:pointer;border-radius:8px;}
+.modeBtn.active{color:#000;background:var(--accent);}
+.modeBtn:hover:not(.active){color:var(--text);}
+.form-group{margin-bottom:16px;}
+.form-group label{display:block;font-size:0.8rem;color:var(--muted);margin-bottom:7px;font-weight:500;}
+.form-group input{width:100%;padding:11px 14px;background:#0f172a;border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:0.95rem;}
+.form-group input:focus{outline:none;border-color:var(--accent);}
+.btn{border:none;border-radius:8px;padding:12px 16px;font-size:0.95rem;font-weight:600;cursor:pointer;width:100%;font-family:inherit;transition:all 0.2s;}
+.btn:disabled{opacity:0.6;cursor:not-allowed;}
+.btn-primary{background:var(--accent);color:#000;}
+.btn-primary:hover:not(:disabled){background:var(--accent-hover);}
+.btn-outline{background:transparent;border:1px solid var(--border);color:var(--text);}
+.btn-outline:hover:not(:disabled){border-color:var(--accent);color:var(--accent);}
+.otpBox{background:#166534;border:2px solid var(--accent);border-radius:var(--radius);padding:20px;margin-top:20px;text-align:center;display:none;}
+.otpBox.show{display:block;animation:slideIn .3s ease-out;}
+@keyframes slideIn{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
+.otpBox .label{display:block;font-size:0.75rem;color:#bbf7d0;margin-bottom:10px;text-transform:uppercase;letter-spacing:1px;font-weight:700;}
+.otpCode{font-size:2rem;font-weight:800;color:var(--accent);font-family:'JetBrains Mono',monospace;letter-spacing:4px;margin-bottom:16px;display:inline-block;background:rgba(0,0,0,0.3);padding:12px 24px;border-radius:8px;border:1px dashed var(--accent);cursor:pointer;}
+.timerBox{background:#0f172a;border:1px dashed var(--border);border-radius:8px;padding:12px 16px;margin-top:16px;text-align:center;}
+.timerLabel{font-size:0.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;font-weight:600;}
+.timerValue{font-size:1.3rem;font-weight:800;color:var(--accent);font-family:'JetBrains Mono',monospace;}
+.timerValue.expiring{color:var(--danger);animation:blink 1s infinite;}
+@keyframes blink{0%,100%{opacity:1;}50%{opacity:0.45;}}
+.alert{padding:12px 16px;border-radius:8px;margin-bottom:16px;font-size:0.85rem;display:none;}
+.alert.error{background:var(--danger-bg);color:#fecaca;border:1px solid var(--danger);}
+.divider{display:flex;align-items:center;gap:12px;margin:24px 0;color:var(--muted);font-size:0.72rem;font-weight:600;}
+.divider::before,.divider::after{content:'';flex:1;border-bottom:1px solid var(--border);}
+.stepIndicator{display:flex;gap:2px;margin-bottom:24px;}
+.step{flex:1;height:3px;background:#334155;border-radius:2px;transition:all .3s;}
+.step.active{background:var(--accent);}.step.completed{background:var(--success);}
+#app{display:none;flex:1;height:100vh;overflow:hidden;}
+#app.visible{display:flex;}
+.sidebar{width:260px;background:#0f172a;border-right:1px solid var(--border);display:flex;flex-direction:column;z-index:20;flex-shrink:0;}
+.sidebarBrand{padding:24px 20px;border-bottom:1px solid var(--border);}
+.sidebarBrand h2{color:var(--accent);font-size:1.1rem;font-weight:700;}
+.sidebarBrand p{font-size:0.7rem;color:var(--muted);margin-top:4px;}
+.nav{flex:1;overflow-y:auto;padding:16px 0;}
+.navItem{display:flex;align-items:center;gap:12px;padding:12px 20px;color:var(--muted);cursor:pointer;font-size:0.875rem;border-left:3px solid transparent;transition:.2s;}
+.navItem:hover{background:var(--card);color:var(--text);}
+.navItem.active{background:rgba(56,189,248,.12);color:var(--accent);border-left:3px solid var(--accent);}
+.navItem .icon{width:20px;text-align:center;font-size:1rem;}
+.userSection{padding:20px;border-top:1px solid var(--border);flex-shrink:0;}
+.userInfo{display:flex;align-items:center;gap:12px;margin-bottom:16px;}
+.userAvatar{width:36px;height:36px;background:var(--accent);color:#000;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.9rem;}
+.userDetails{flex:1;min-width:0;}
+.userEmail{font-size:.875rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.userRole{font-size:.72rem;color:var(--muted);}
+.logoutBtn{width:100%;background:transparent;border:1px solid var(--border);color:var(--text);border-radius:8px;padding:10px 14px;font-size:.875rem;cursor:pointer;}
+.logoutBtn:hover{background:var(--danger-bg);border-color:var(--danger);color:#fecaca;}
+.main{flex:1;overflow-y:auto;padding:32px 40px;}
+.topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:32px;}
+.topbar h1{font-size:1.25rem;color:var(--accent);font-weight:700;}
+.statusPill{display:inline-flex;align-items:center;gap:8px;padding:7px 16px;border-radius:999px;font-size:.8rem;font-weight:600;border:1px solid var(--border);background:var(--card);color:var(--muted);}
+.statusPill .dot{width:7px;height:7px;border-radius:50%;background:var(--danger);animation:pulse 2s infinite;}
+.statusPill.online .dot{background:var(--success);animation:none;}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.4;}}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px;margin-bottom:32px;}
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:24px;box-shadow:0 4px 6px -1px rgba(0,0,0,.1);}
+.card h2{font-size:1rem;margin-bottom:18px;color:var(--accent);display:flex;align-items:center;gap:10px;font-weight:700;}
+.authState{display:flex;align-items:center;gap:10px;margin-bottom:20px;padding:12px 16px;background:#2d3748;border-radius:8px;border:1px solid var(--border);}
+.authState .dot{width:8px;height:8px;border-radius:50%;background:var(--success);}
+.tokenBox{font-family:'JetBrains Mono',monospace;font-size:.72rem;background:#0f172a;border:1px solid var(--border);border-radius:8px;padding:12px;word-break:break-all;margin-top:10px;color:#bbf7d0;max-height:70px;overflow-y:auto;}
+table{width:100%;border-collapse:collapse;margin-top:12px;}
+th{text-align:left;padding:10px 12px;font-size:.7rem;color:var(--muted);border-bottom:1px solid var(--border);font-weight:700;text-transform:uppercase;}
+td{padding:12px;border-bottom:1px solid var(--border);font-size:.875rem;}
+tr:hover{background:var(--card-hover);}
+.empty{color:var(--muted);font-style:italic;text-align:center;padding:32px;}
+.badge{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:6px;font-size:.7rem;font-weight:700;text-transform:uppercase;}
+.badge-ok{background:var(--success-bg);color:#bbf7d0;}
+.badge-err{background:var(--danger-bg);color:#fecaca;}
+.resultRow{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:10px;padding:12px;background:#2d3748;border-radius:8px;border:1px solid var(--border);word-break:break-all;font-size:.8rem;}
+.resultRow .ok{color:var(--success);}.resultRow .err{color:var(--danger);}
+.tabContent{display:none;}
+.tabContent.active{display:block;}
+.copyHint{font-size:.75rem;color:#bbf7d0;margin-top:8px;}
+@media (max-width:768px){.sidebar{display:none;}.main{padding:20px 16px;}.grid{grid-template-columns:1fr;}}
+</style>
+</head>
+<body>
+
+<div id="authPage">
+<div class="authCard">
+<h1 id="authTitle">Create Account</h1>
+<div class="sub" id="authSubtitle">Join the Universal API Server</div>
+<div id="authAlert" class="alert error"></div>
+
+<div class="modeToggle">
+<button class="modeBtn active" id="modeSignup" onclick="setMode('signup')">Create Account</button>
+<button class="modeBtn" id="modeLogin" onclick="setMode('login')">Sign In</button>
+</div>
+
+<div class="stepIndicator">
+<div class="step active" id="step1"></div><div class="step" id="step2"></div><div class="step" id="step3"></div>
+</div>
+
+<div id="stepCredentials">
+<div class="form-group"><label for="authEmail">Email</label><input type="email" id="authEmail" placeholder="you@example.com" /></div>
+<div class="form-group" id="passwordGroup"><label for="authPassword">Password</label><input type="password" id="authPassword" placeholder="••••••••" /></div>
+<button class="btn btn-primary" id="btnStep1" onclick="step1Next()">Continue</button>
+</div>
+
+<div id="stepOtpSent" style="display:none;text-align:center;">
+<div style="font-size:2.5rem;margin-bottom:12px;">📧</div>
+<div style="color:var(--muted);margin-bottom:6px;">Code sent to</div>
+<div style="font-weight:700;color:var(--text);margin-bottom:16px;" id="otpTargetEmail"></div>
+<div class="form-group" style="margin-bottom:10px;"><label for="otpCodeInput">Verification Code</label><input type="text" id="otpCodeInput" placeholder="123456" maxlength="6" style="text-align:center;font-size:1.4rem;letter-spacing:3px;font-family:'JetBrains Mono',monospace;" /></div>
+<div class="timerBox" id="resendTimerBox" style="display:none;"><div class="timerLabel">Resend in</div><div class="timerValue" id="resendTimerValue">00:60</div></div>
+<div class="timerBox" id="expiryTimerBox" style="display:none;"><div class="timerLabel">Code expires in</div><div class="timerValue" id="expiryTimerValue">00:10</div></div>
+<div class="otpCode" id="otpCodeDisplay" onclick="copyOTP()" style="cursor:pointer;margin:16px 0;"></div>
+<div class="copyHint" id="copyHint">Click to copy</div>
+<button class="btn btn-primary" onclick="step2Verify()">Verify Code</button>
+<button class="btn btn-outline" style="margin-top:10px;" onclick="step1Back()">Back</button>
+</div>
+
+<div id="stepSuccess" style="display:none;text-align:center;">
+<div style="font-size:2.5rem;margin-bottom:12px;">✅</div>
+<div style="color:var(--success);font-weight:700;margin-bottom:16px;">Account Verified!</div>
+<div style="color:var(--muted);margin-bottom:20px;">Redirecting&hellip;</div>
+<div class="tokenBox" id="stepTokens" style="text-align:left;"></div>
+</div>
+</div>
+</div>
+
+<div id="app">
+<div class="sidebar">
+<div class="sidebarBrand"><h2>🔐 API Console</h2><p>Universal API Server v2.0.0</p></div>
+<div class="nav">
+<div class="navItem active" onclick="showSection('dashboard')" id="navDashboard"><span class="icon">📊</span> Dashboard</div>
+<div class="navItem" onclick="showSection('auth')" id="navAuth"><span class="icon">🔑</span> Authentication</div>
+<div class="navItem" onclick="showSection('apikeys')" id="navAPIKeys"><span class="icon">🗝️</span> API Keys</div>
+<div class="navItem" onclick="showSection('projects')" id="navProjects"><span class="icon">🅰️</span> Projects</div>
+<div class="navItem" onclick="showSection('database')" id="navDatabase"><span class="icon">🗄️</span> Database</div>
+</div>
+<div class="userSection" id="userSection">
+<div class="userInfo"><div class="userAvatar" id="userAvatar">U</div><div class="userDetails"><div class="userEmail" id="userEmail">user@example.com</div><div class="userRole" id="userRole">User</div></div></div>
+<button class="logoutBtn" onclick="doLogout()">Sign Out</button>
+</div>
+</div>
+
+<div class="main">
+<div class="topbar"><h1 id="sectionTitle">Dashboard</h1><div class="statusRow"><div class="statusPill" id="statusPill"><div class="dot"></div><span id="statusText">Checking server...</span></div></div></div>
+
+<div id="section-dashboard" class="tabContent active">
+<div class="grid">
+<div class="card"><h2><span class="icon">🏥</span>Server Health</h2><button class="btn btn-outline" onclick="checkHealth()">Check Server</button><div id="dashboardHealth" class="empty">Not checked yet</div></div>
+<div class="card"><h2><span class="icon">📋</span>Quick Actions</h2><p style="color:var(--muted);font-size:0.8rem;margin-bottom:16px;">Get started with the API</p><button class="btn btn-primary" onclick="showSection('auth')">Authenticate</button><button class="btn btn-outline" style="margin-top:10px;" onclick="showSection('apikeys')">API Keys</button></div>
+</div>
+</div>
+
+<div id="section-auth" class="tabContent">
+<div class="authState"><div class="dot"></div><span id="authStatusText">Not logged in</span></div>
+<div class="card"><h2><span class="icon">📝</span>Register</h2><div class="form-group"><label for="regEmail2">Email</label><input type="email" id="regEmail2" placeholder="you@example.com"/></div><div class="form-group"><label for="regPassword2">Password</label><input type="password" id="regPassword2" placeholder="••••••••"/></div><button class="btn btn-primary" onclick="doRegister()">Create Account</button><div id="regResult2" class="empty"></div></div>
+<div class="card"><h2><span class="icon">🔑</span>Login</h2><div class="form-group"><label for="loginEmail2">Email</label><input type="email" id="loginEmail2" placeholder="you@example.com"/></div><div class="form-group"><label for="loginPassword2">Password</label><input type="password" id="loginPassword2" placeholder="••••••••"/></div><button class="btn btn-success" onclick="doLogin()">Sign In</button><div id="loginResult2" class="empty"></div><div id="tokensDisplay2" class="tokenBox"></div></div>
+<div class="card"><h2><span class="icon">👤</span>Profile</h2><button class="btn btn-outline" onclick="doMe()">Get My Profile</button><div id="meResult2" class="empty"></div></div>
+<div class="card"><h2><span class="icon">🔄</span>Refresh Token</h2><div class="form-group"><label for="refreshToken2">Refresh Token</label><input type="text" id="refreshToken2" placeholder="Paste refresh token"/></div><button class="btn btn-outline" onclick="doRefresh()">Refresh</button><div id="refreshResult2" class="empty"></div></div>
+</div>
+
+<div id="section-apikeys" class="tabContent">
+<div class="card"><h2><span class="icon">🗝️</span>Create API Key</h2><div class="form-group"><label for="keyName">Name</label><input type="text" id="keyName" placeholder="my-service-key"/></div><div class="form-group"><label for="keyPerms">Permissions</label><input type="text" id="keyPerms" placeholder="read,write"/></div><div class="form-group"><label for="keyExpires">Expires Days</label><input type="text" id="keyExpires" placeholder="30"/></div><button class="btn btn-success" onclick="doCreateApiKey()">Create Key</button><div id="apiKeyResult" class="empty"></div><div id="apiKeyDisplay" class="tokenBox"></div></div>
+<div class="card"><h2><span class="icon">📋</span>My Keys</h2><button class="btn btn-outline" onclick="doListApiKeys()">Refresh</button><div id="apiKeysList"></div></div>
+</div>
+
+<div id="section-projects" class="tabContent">
+<div class="card"><h2><span class="icon">🅰️</span>Project Alpha</h2><button class="btn btn-outline" onclick="doProjectAlpha()">Test Alpha</button><div id="projectAlphaResult" class="empty"></div></div>
+<div class="card"><h2><span class="icon">🅱️</span>Project Beta</h2><button class="btn btn-outline" onclick="doProjectBeta()">Test Beta</button><div id="projectBetaResult" class="empty"></div></div>
+</div>
+
+<div id="section-database" class="tabContent">
+<div class="card"><h2><span class="icon">🗄️</span>Database</h2><button class="btn btn-success" onclick="doInitDb()">Init Tables</button><div id="initDbResult" class="empty"></div></div>
+<div class="card"><h2><span class="icon">📋</span>Items</h2><button class="btn btn-outline" onclick="doListItems()">Refresh</button><span id="dbItemCount" style="font-size:0.8rem;color:var(--muted);">0 items</span><table id="dbItemsTable"><thead><tr><th>ID</th><th>Name</th><th>Created At</th><th>Action</th></tr></thead><tbody id="dbItemsBody"></tbody></table></div>
+<div class="card"><h2><span class="icon">➕</span>Create Item</h2><div class="form-group"><label for="dbItemName">Name</label><input type="text" id="dbItemName" placeholder="Item name"/></div><button class="btn btn-primary" onclick="doCreateItem()">Create</button><div id="dbCreateResult" class="empty"></div></div>
+</div>
+
+<div class="card"><h2><span class="icon">📡</span>Live Responses</h2><div id="responseLog"></div></div>
+</div>
+</div>
+
+<script>
+const API='https://universal-api-server.ecomadebisi8-94e.workers.dev';
+let accessToken='',refreshToken='',currentUser=null,pendingEmail='',pendingOtpEmail='',isSignup=true,resendInterval=null,expiryInterval=null,resendSecondsLeft=60,expirySecondsLeft=600;
+
+function $(id){return document.getElementById(id);}
+function st(id,t){const el=$(id);if(el)el.textContent=t;}
+function sh(id,show,d='block'){const el=$(id);if(el)el.style.display=show?d:'none';}
+function showAuthAlert(msg){const el=$('authAlert');if(el){el.textContent=msg;el.className='alert error';el.style.display='block';}}
+function showMessage(el,msg,success=false){if(!el)return;el.textContent=msg;el.style.color=success?'var(--success)':'var(--danger)';}
+function escapeHtml(str){const div=document.createElement('div');div.textContent=str;return div.innerHTML;}
+function stopTimers(){if(resendInterval)clearInterval(resendInterval);if(expiryInterval)clearInterval(expiryInterval);resendInterval=null;expiryInterval=null;}
+
+async function apiRequest(path,options={}){
+const headers={'Content-Type':'application/json'};
+if(accessToken)headers.Authorization='Bearer '+accessToken;
+if(options.headers)Object.assign(headers,options.headers);
+const r=await fetch(API+path,{...options,headers});
+let d;try{d=await r.json();}catch{d={};}
+if(!r.ok)throw new Error(d.error||d.message||'HTTP '+r.status);
+return d;
+}
+
+function addResponse(method,path,data,ok=true){
+const log=$('responseLog');if(!log)return;
+const div=document.createElement('div');div.className='resultRow';const time=new Date().toLocaleTimeString();
+div.innerHTML='<div style="display:flex;align-items:center;gap:10px;flex:1;"><span class="method '+method.toLowerCase()+'">'+method+'</span><span style="font-size:0.8rem;color:var(--muted);">'+path+'</span><span style="font-size:0.75rem;color:var(--muted);margin-left:auto;">'+time+'</span><span class="badge '+(ok?'badge-ok':'badge-err')+'">'+(ok?'OK':'ERROR')+'</span></div><div style="font-size:0.7rem;color:var(--muted);max-width:400px;word-break:break-all;">'+(ok?formatResponse(data):(data.error||data.message||String(data)))+'</div>';
+log.prepend(div);while(log.children.length>20)log.removeChild(log.lastChild);
+}
+
+function formatResponse(d){
+if(!d)return '—';if(d.status==='ok')return '✅ '+d.status+' · '+(d.service||'')+' v'+(d.version||'');if(d.created)return '✅ Created: '+d.name+' (id:'+d.id+')';if(d.deleted)return '✅ Deleted id:'+d.id;if(d.otp_code)return '📧 OTP: '+d.otp_code;if(d.key)return '🔑 Key: '+d.key;if(Array.isArray(d.items))return '📦 '+d.count+' items';if(d.item)return '📄 Item '+d.item.id+': '+d.item.name;if(typeof d==='object')return Object.entries(d).map(([k,v])=>k+': '+v).join(' • ');return String(d);
+}
+
+function setMode(mode){
+isSignup=mode==='signup';
+$('modeSignup')?.classList.toggle('active',isSignup);
+$('modeLogin')?.classList.toggle('active',!isSignup);
+$('passwordGroup')?.style.display=isSignup?'block':'none';
+st('authTitle',isSignup?'Create Account':'Sign In');
+st('authSubtitle',isSignup?'Join the Universal API Server':'Welcome back');
+st('btnStep1',isSignup?'Create Account':'Send Code');
+$('authEmail')?.value='';$('authPassword')?.value='';
+sh('stepCredentials',true);sh('stepOtpSent',false);sh('stepSuccess',false);stopTimers();
+$('authAlert')?.style.display='none';
+updateSteps(1);
+}
+
+function updateSteps(s){
+document.querySelectorAll('.step').forEach((el,i)=>{el.className='step';if(i<s-1)el.classList.add('completed');if(i===s-1)el.classList.add('active');});
+}
+
+function copyOTP(){const el=$('otpCodeDisplay');if(!el)return;navigator.clipboard.writeText(el.textContent);st('copyHint','Copied!');setTimeout(()=>st('copyHint','Click to copy'),1500);}
+
+function startResendTimer(){
+resendSecondsLeft=60;const box=$('resendTimerBox');const val=$('resendTimerValue');sh('resendTimerBox',true);if(resendInterval)clearInterval(resendInterval);
+resendInterval=setInterval(()=>{resendSecondsLeft--;if(val){const m=Math.floor(resendSecondsLeft/60),s=resendSecondsLeft%60;val.textContent=m.toString().padStart(2,'0')+':'+s.toString().padStart(2,'0');}if(resendSecondsLeft<=0){clearInterval(resendInterval);resendInterval=null;sh('resendTimerBox',false);}},1000);
+}
+
+function startExpiryTimer(){
+expirySecondsLeft=600;const box=$('expiryTimerBox');const val=$('expiryTimerValue');sh('expiryTimerBox',true);if(expiryInterval)clearInterval(expiryInterval);
+expiryInterval=setInterval(()=>{expirySecondsLeft--;if(val){const m=Math.floor(expirySecondsLeft/60),s=expirySecondsLeft%60;val.textContent=m.toString().padStart(2,'0')+':'+s.toString().padStart(2,'0');if(expirySecondsLeft<=30)val.classList.add('expiring');if(expirySecondsLeft<=0){clearInterval(expiryInterval);expiryInterval=null;val.textContent='00:00';val.classList.add('expiring');}},1000);
+}
+
+async function step1Next(){
+const email=$('authEmail')?.value.trim();
+const pass=$('authPassword')?.value.trim();
+const btn=$('btnStep1');
+if(!email){showAuthAlert('Enter your email address.');return;}
+if(isSignup&&!pass){showAuthAlert('Enter your password.');return;}
+$('authAlert')?.style.display='none';
+btn.disabled=true;btn.textContent=isSignup?'Creating account...':'Signing in...';
+try{
+if(!isSignup){
+const d=await apiRequest('/api/v1/auth/login',{method:'POST',body:JSON.stringify({email,password:pass})});
+accessToken=d.access_token;refreshToken=d.refresh_token;currentUser={id:d.user.id,email:d.user.email,role:d.user.role};
+enterApp();return;
+}
+const d=await apiRequest('/api/v1/auth/register',{method:'POST',body:JSON.stringify({email,password:pass})});
+pendingEmail=email;pendingPassword=pass;
+const otp=await apiRequest('/api/v1/auth/send-otp',{method:'POST',body:JSON.stringify({email})});
+pendingOtpEmail=email;
+st('otpTargetEmail',email);$('otpCodeDisplay')?.textContent=otp.otp_code||'';$('otpCodeInput')?.value='';
+sh('stepCredentials',false);sh('stepOtpSent',true);updateSteps(2);startResendTimer();startExpiryTimer();
+} catch(err){showAuthAlert(err.message);btn.disabled=false;btn.textContent=isSignup?'Create Account':'Sign In';}
+}
+
+function step1Back(){stopTimers();sh('stepOtpSent',false);sh('stepCredentials',true);updateSteps(1);$('authAlert')?.style.display='none';}
+
+async function step2Verify(){
+const code=$('otpCodeInput')?.value.trim();const btn=document.querySelector('#stepOtpSent .btn-primary');
+if(!code){showAuthAlert('Enter your verification code.');return;}
+if(!pendingOtpEmail){showAuthAlert('Verification session expired.');return;}
+btn.disabled=true;btn.textContent='Verifying...';
+try{
+const d=await apiRequest('/api/v1/auth/verify-otp',{method:'POST',body:JSON.stringify({email:pendingOtpEmail,code})});
+accessToken=d.access_token;refreshToken=d.refresh_token;currentUser={id:d.user.id,email:d.user.email,role:d.user.role};
+stopTimers();sh('stepOtpSent',false);sh('stepSuccess',true);updateSteps(3);
+const tokens=$('stepTokens');if(tokens){tokens.textContent='Access: '+accessToken+'\n\nRefresh: '+refreshToken;}
+setTimeout(enterApp,1200);
+} catch(err){showAuthAlert(err.message);btn.disabled=false;btn.textContent='Verify Code';}
+}
+
+function enterApp(){
+if(!currentUser)return;
+sh('authPage',false);sh('app',true,'flex');sh('userSection',true);
+st('userEmail',currentUser.email);st('userRole',currentUser.role||'User');
+$('userAvatar')?.textContent=currentUser.email.charAt(0).toUpperCase();
+st('authStatusText','Logged in as '+currentUser.email);
+showSection('dashboard');checkHealth();
+}
+
+function showSection(name){
+document.querySelectorAll('.tabContent').forEach(el=>el.classList.remove('active'));
+document.querySelectorAll('.navItem').forEach(el=>el.classList.remove('active'));
+const s=$('section-'+name);const n=$('nav'+name.charAt(0).toUpperCase()+name.slice(1));
+s?.classList.add('active');n?.classList.add('active');st('sectionTitle',name.charAt(0).toUpperCase()+name.slice(1));
+}
+
+async function checkHealth(){
+const btn=$('dashboardHealth')?.previousElementSibling;if(btn){btn.disabled=true;btn.textContent='Checking...';}
+try{
+const d=await apiRequest('/');st('statusText','Online ('+d.status+')');$('statusPill')?.className='statusPill online';
+$('dashboardHealth')?.innerHTML='<span style="color:var(--success)">&#10004; '+d.status+'</span> · '+d.service+' v'+d.version;addResponse('GET','/',d,true);
+} catch(err){st('statusText','Offline');$('statusPill')?.className='statusPill';$('dashboardHealth')?.innerHTML='<span style="color:var(--danger)">&#10006; Offline</span>';addResponse('GET','/',{error:err.message},false);}
+finally(){if(btn){btn.disabled=false;btn.textContent='Check Server';}}
+}
+
+async function doLogin(){
+const email=$('loginEmail2')?.value.trim();const pass=$('loginPassword2')?.value.trim();const res=$('loginResult2');
+if(!email||!pass){showMessage(res,'Email and password required.');return;}
+try{
+const d=await apiRequest('/api/v1/auth/login',{method:'POST',body:JSON.stringify({email,password:pass})});
+accessToken=d.access_token;refreshToken=d.refresh_token;currentUser={id:d.user.id,email:d.user.email,role:d.user.role};
+enterApp();showMessage(res,'Successfully signed in.',true);st('tokensDisplay2','Access: '+accessToken+'\n\nRefresh: '+refreshToken);
+} catch(err){showMessage(res,err.message);addResponse('POST','/api/v1/auth/login',{error:err.message},false);}
+}
+
+async function doRegister(){
+const email=$('regEmail2')?.value.trim();const pass=$('regPassword2')?.value.trim();const res=$('regResult2');
+if(!email||!pass){showMessage(res,'Email and password required.');return;}
+try{
+const d=await apiRequest('/api/v1/auth/register',{method:'POST',body:JSON.stringify({email,password:pass})});
+showMessage(res,'Account created successfully.',true);addResponse('POST','/api/v1/auth/register',d,true);
+} catch(err){showMessage(res,err.message);addResponse('POST','/api/v1/auth/register',{error:err.message},false);}
+}
+
+async function doMe(){
+const res=$('meResult2');res.innerHTML='Fetching…';
+try{
+const d=await apiRequest('/api/v1/auth/me');res.innerHTML='<span style="color:var(--success)">&#10004; '+d.user.email+' ('+d.user.role+')</span>';addResponse('GET','/api/v1/auth/me',d,true);
+} catch(err){res.innerHTML='<span style="color:var(--danger)">&#10006; '+err.message+'</span>';addResponse('GET','/api/v1/auth/me',{error:err.message},false);}
+}
+
+async function doRefresh(){
+const res=$('refreshResult2');res.innerHTML='Refreshing…';
+try{
+const d=await apiRequest('/api/v1/auth/refresh',{method:'POST',body:JSON.stringify({refresh_token:refreshToken||$('refreshToken2')?.value})});
+accessToken=d.access_token;refreshToken=d.refresh_token;res.innerHTML='<span style="color:var(--success)">&#10004; Refreshed</span>';st('tokensDisplay2','Access: '+accessToken+'\n\nRefresh: '+refreshToken);
+} catch(err){res.innerHTML='<span style="color:var(--danger)">&#10006; '+err.message+'</span>';addResponse('POST','/api/v1/auth/refresh',{error:err.message},false);}
+}
+
+function doLogout(){
+accessToken='';refreshToken='';currentUser=null;pendingEmail='';pendingPassword='';pendingOtpEmail='';stopTimers();
+sh('authPage',true,'flex');sh('app',false);setMode('signup');$('tokensDisplay2')?.textContent='';
+}
+
+async function doCreateApiKey(){
+const name=$('keyName')?.value.trim();const perms=$('keyPerms')?.value.split(',').map(s=>s.trim()).filter(Boolean);const expires=$('keyExpires')?.value.trim();const res=$('apiKeyResult');res.innerHTML='Creating…';
+try{
+const d=await apiRequest('/api/v1/auth/api-keys',{method:'POST',body:JSON.stringify({name,permissions:perms,expires_in_days:expires?parseInt(expires):undefined})});
+res.innerHTML='<span style="color:var(--success)">&#10004; '+d.name+'</span>';$('apiKeyDisplay')?.innerHTML='<strong>Key:</strong><div class="tokenBox">'+d.key+'</div>';doListApiKeys();
+} catch(err){res.innerHTML='<span style="color:var(--danger)">&#10006; '+err.message+'</span>';addResponse('POST','/api/v1/auth/api-keys',{error:err.message},false);}
+}
+
+async function doListApiKeys(){
+const c=$('apiKeysList');c.innerHTML='<div style="color:var(--muted)">Loading…</div>';
+try{
+const d=await apiRequest('/api/v1/auth/api-keys');const keys=d.keys||[];
+if(keys.length===0){c.innerHTML='<div class="empty">No keys</div>';}else{
+let h='<table><thead><tr><th>Name</th><th>Key</th><th>Perms</th><th>Action</th></tr></thead><tbody>';
+keys.forEach(k=>{h+='<tr><td><strong>'+k.name+'</strong></td><td><span class="maskedKey">'+k.key_prefix+'</span></td><td><span class="badge badge-info">'+k.permissions.join(',')+'</span></td><td><button class="btn btn-danger" style="width:auto;padding:6px 10px;" onclick="doRevokeApiKeyById(''+k.id+'')">Revoke</button></td></tr>';});
+h+='</tbody></table>';c.innerHTML=h;
+}addResponse('GET','/api/v1/auth/api-keys',{count:keys.length},true);
+} catch(err){c.innerHTML='<span style="color:var(--danger)">&#10006; '+err.message+'</span>';addResponse('GET','/api/v1/auth/api-keys',{error:err.message},false);}
+}
+
+async function doRevokeApiKeyById(id){
+const res=$('apiKeyResult');res.innerHTML='Revoking…';
+try{
+const d=await apiRequest('/api/v1/auth/api-keys/'+id,{method:'DELETE'});res.innerHTML=d.ok?'<span style="color:var(--success)">&#10004; Revoked</span>':'<span style="color:var(--danger)">&#10006; '+d.error+'</span>';if(d.ok)doListApiKeys();
+} catch(err){res.innerHTML='<span style="color:var(--danger)">&#10006; '+err.message+'</span>';addResponse('DELETE','/api/v1/auth/api-keys/'+id,{error:err.message},false);}
+}
+
+async function doProjectAlpha(){
+const res=$('projectAlphaResult');res.innerHTML='Fetching…';
+try{
+const d=await apiRequest('/api/v1/project-alpha');res.innerHTML='<span style="color:var(--success)">&#10004; Auth: '+(d.authenticated?'yes':'no')+' · User: '+(d.user?d.user.email:'none')+' · Service: '+(d.service?d.service.name:'none')+'</span>';addResponse('GET','/api/v1/project-alpha',d,true);
+} catch(err){res.innerHTML='<span style="color:var(--danger)">&#10006; '+err.message+'</span>';addResponse('GET','/api/v1/project-alpha',{error:err.message},false);}
+}
+
+async function doProjectBeta(){
+const res=$('projectBetaResult');res.innerHTML='Fetching…';
+try{
+const d=await apiRequest('/api/v1/project-beta');res.innerHTML='<span style="color:var(--success)">&#10004; Auth: '+(d.authenticated?'yes':'no')+' · User: '+(d.user?d.user.email:'none')+' · Service: '+(d.service?d.service.name:'none')+'</span>';addResponse('GET','/api/v1/project-beta',d,true);
+} catch(err){res.innerHTML='<span style="color:var(--danger)">&#10006; '+err.message+'</span>';addResponse('GET','/api/v1/project-beta',{error:err.message},false);}
+}
+
+async function doInitDb(){
+const res=$('initDbResult');res.innerHTML='Initializing…';
+try{
+const d=await apiRequest('/api/v1/db/_init');res.innerHTML='<span style="color:var(--success)">&#10004; '+d.status+'</span>';addResponse('POST','/api/v1/db/_init',d,true);doListItems();
+} catch(err){res.innerHTML='<span style="color:var(--danger)">&#10006; '+err.message+'</span>';addResponse('POST','/api/v1/db/_init',{error:err.message},false);}
+}
+
+async function doListItems(){
+const body=$('dbItemsBody');const countEl=$('dbItemCount');body.innerHTML='<tr><td colspan="4" style="color:var(--muted)">Loading…</td></tr>';
+try{
+const d=await apiRequest('/api/v1/db/items');const items=d.items||[];if(countEl)countEl.textContent=items.length+' item'+(items.length!==1?'s':'');body.innerHTML='';
+if(items.length===0){body.innerHTML='<tr><td colspan="4" class="empty">No items</td></tr>';return;}
+items.forEach(item=>{const tr=document.createElement('tr');tr.innerHTML='<td><span style="font-family:monospace;font-size:0.8rem;color:var(--accent)">#'+item.id+'</span></td><td><strong>'+escapeHtml(item.name)+'</strong></td>';body.appendChild(tr);});addResponse('GET','/api/v1/db/items',{count:items.length},true);
+} catch(err){body.innerHTML='<tr><td colspan="4" style="color:var(--danger)">&#10006; '+err.message+'</td></tr>';addResponse('GET','/api/v1/db/items',{error:err.message},false);}
+}
+
+async function doCreateItem(){
+const name=$('dbItemName')?.value.trim();const res=$('dbCreateResult');res.innerHTML='Creating…';
+try{
+const d=await apiRequest('/api/v1/db/items',{method:'POST',body:JSON.stringify({name})});res.innerHTML='<span style="color:var(--success)">&#10004; '+d.name+'</span>';$('dbItemName')?.value='';addResponse('POST','/api/v1/db/items',d,true);doListItems();
+} catch(err){res.innerHTML='<span style="color:var(--danger)">&#10006; '+err.message+'</span>';addResponse('POST','/api/v1/db/items',{error:err.message},false);}
+}
+
+setMode('signup');checkHealth();setInterval(checkHealth,30000);
+</script></script>
+</body>
+</html>

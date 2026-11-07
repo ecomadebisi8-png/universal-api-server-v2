@@ -6,9 +6,10 @@ compatibility_flags = ["nodejs_compat"]
 [vars]
 ENVIRONMENT = "development"
 API_VERSION = "v2"
+JWT_SECRET = "Temiloluwa"
 
-# D1 Database (will be created)
+# Using same D1 database as v1 for initial deployment
 [[d1_databases]]
 binding = "DB"
-database_name = "universal-api-db-v2"
-database_id = ""
+database_name = "universal-api-db"
+database_id = "7485bcbd-91cc-4c5e-98a0-282e84b0c153"
